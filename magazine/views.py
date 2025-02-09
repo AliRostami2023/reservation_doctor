@@ -52,7 +52,7 @@ class MagazineViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = IsAuthenticatedOrAdmin
+    permission_classes = [IsAuthenticatedOrAdmin]
     pagination_class = ReviewPaginations
 
     def perform_create(self, serializer):
