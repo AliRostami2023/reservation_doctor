@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta
-from .models import OtpCode, PasswordResetToken, Doctor
+from .models import OtpCode, PasswordResetToken, Doctor, Patient
 from .random_code_otp import random_otp_code
 
 User = get_user_model()
@@ -165,3 +165,15 @@ class CreateDoctorSerializer(serializers.ModelSerializer):
         doctor = Doctor.objects.create(user=user, **validated_data)
         return doctor
 
+
+class ProfilePatientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = '__all__'
+
+
+class ProfileDoctorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+        

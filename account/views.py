@@ -3,9 +3,10 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from .serializers import CreatePatientSerializer, VerifyCodeSerializer, ResendCodeSerializers, \
-                    ResetPasswordConfirmSerializer, ResetPasswordRequestSerializer, CreateDoctorSerializer
-from .models import OtpCode, Doctor
-
+                    ResetPasswordConfirmSerializer, ResetPasswordRequestSerializer, \
+                        CreateDoctorSerializer, ProfileDoctorSerializer, ProfilePatientSerializer
+from .models import OtpCode, Doctor, Patient
+from .permissions import IsDoctor, IsPatient
 
 User = get_user_model()
 
@@ -86,3 +87,28 @@ class CreateDoctorViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'message': _("ثبت نام با موفقیت انجام شد پس از بررسی به شما اطلاع میدهیم.")}, status.HTTP_201_CREATED)
+
+
+
+class DoctorProfileViewSet(viewsets.ModelViewSet):
+    queryset = Doctor.objects.select_related('user')
+    serializer_class = ProfileDoctorSerializer
+    permission_classes = [permissions.IsAuthenticated, IsDoctor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset
+        return Doctor.objects.filter(user=user) 
+
+class PatientProfileViewSet(viewsets.ModelViewSet):
+    queryset = Patient.objects.select_related('user')
+    serializer_class = ProfilePatientSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset
+        return Patient.objects.filter(user=user) 
+    
