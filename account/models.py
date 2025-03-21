@@ -54,7 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin, CreateMixin):
 
 class Doctor(CreateMixin, UpdateMixin, InformationUser):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor_profile', verbose_name=_('کاربر'))
-    Medical_system_code = models.CharField(max_length=12, unique=True, verbose_name=_('کد نظام پزشکی'))
+    Medical_system_code = models.CharField(max_length=12, verbose_name=_('کد نظام پزشکی'))
     specialty = models.CharField(max_length=100, verbose_name=_('تخصص'))
     experience_years = models.PositiveSmallIntegerField(default=0, verbose_name=_('سابقه کاری'))
 

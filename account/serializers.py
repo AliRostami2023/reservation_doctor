@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse_lazy
 from django.core.mail import send_mail
+from django.db import transaction, IntegrityError
 from django.conf import settings
 from datetime import datetime, timedelta
 from .models import OtpCode, PasswordResetToken, Doctor, Patient
@@ -22,12 +22,13 @@ class CreatePatientSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['user_type'] = 'patient'
-        user = User.objects.create_user(**validated_data)
+        with transaction.atomic():
+            user = User.objects.create_user(**validated_data)
 
-        expired_date = datetime.now() + timedelta(minutes=2)
-        OtpCode.objects.create(user=user, code=random_otp_code(), expired_date=expired_date)
-        print(f"your code is : {random_otp_code()}")
-        return user
+            expired_date = datetime.now() + timedelta(minutes=2)
+            OtpCode.objects.create(user=user, code=random_otp_code(), expired_date=expired_date)
+            print(f"your code is : {random_otp_code()}")
+            return user
     
 
 class VerifyCodeSerializer(serializers.ModelSerializer):
@@ -146,6 +147,7 @@ class ResendCodeSerializers(serializers.Serializer):
         print(f"Resend code for {user.phone_number} : {otp_code}")
         return user
 
+
 class CreateDoctorSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='user.full_name')
     phone_number = serializers.CharField(source='user.phone_number')
@@ -157,13 +159,22 @@ class CreateDoctorSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-        user, created = User.objects.get_or_create(is_active=False, email=user_data['email'], defaults=user_data)
 
-        if Doctor.objects.filter(user=user).exists():
-            raise serializers.ValidationError(_("این پزشک قبلاً ثبت شده است."))
+        with transaction.atomic():
+            user, created = User.objects.get_or_create(is_active=False, email=user_data['email'], defaults=user_data)
 
-        doctor = Doctor.objects.create(user=user, **validated_data)
-        return doctor
+            if created or user.user_type != 'doctor':
+                user.user_type = 'doctor'
+                user.save()
+
+            if Doctor.objects.filter(user=user).exists():
+                raise serializers.ValidationError(_("این پزشک قبلاً ثبت شده است."))
+
+            try:
+                doctor = Doctor.objects.create(user=user, **validated_data)
+                return doctor
+            except IntegrityError:
+                raise serializers.ValidationError(_("مشکلی در ثبت پزشک رخ داده است. لطفاً دوباره تلاش کنید."))
 
 
 class ProfilePatientSerializer(serializers.ModelSerializer):
