@@ -69,6 +69,12 @@ class Doctor(CreateMixin, UpdateMixin, InformationUser):
 
 class Patient(CreateMixin, UpdateMixin, InformationUser):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_user', verbose_name=_('کاربر'))
+    GENDER = (
+        ('male', 'مرد'),
+        ('female', 'زن')
+    )
+
+    gender = models.CharField(max_length=6, choices=GENDER, null=True, blank=True, verbose_name=_('جنسیت'))
     
     def __str__(self):
         return self.user.full_name
@@ -120,3 +126,4 @@ class PasswordResetToken(models.Model):
     class Meta:
         verbose_name = _('توکن ریست کلمه عبور')
         verbose_name_plural = _('توکن های ریست کلمه عبور')
+        

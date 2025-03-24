@@ -175,15 +175,25 @@ class CreateDoctorSerializer(serializers.ModelSerializer):
                 return doctor
             except IntegrityError:
                 raise serializers.ValidationError(_("مشکلی در ثبت پزشک رخ داده است. لطفاً دوباره تلاش کنید."))
+            
+
+class GetUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 
 
 class ProfilePatientSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer()
+
     class Meta:
         model = Patient
         fields = '__all__'
 
 
 class ProfileDoctorSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer()
+    
     class Meta:
         model = Doctor
         fields = '__all__'
