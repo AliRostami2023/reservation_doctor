@@ -1,3 +1,4 @@
+import random
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
@@ -165,6 +166,8 @@ class CreateDoctorSerializer(serializers.ModelSerializer):
 
             if created or user.user_type != 'doctor':
                 user.user_type = 'doctor'
+                random_pass = random.randint(10000000, 99999999)
+                user.password = (str(random_pass))
                 user.save()
 
             if Doctor.objects.filter(user=user).exists():
@@ -180,7 +183,7 @@ class CreateDoctorSerializer(serializers.ModelSerializer):
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ['full_name', 'phone_number', 'email', 'last_login']
 
 
 class ProfilePatientSerializer(serializers.ModelSerializer):
