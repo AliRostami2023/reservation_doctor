@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from .serializers import CreatePatientSerializer, VerifyCodeSerializer, ResendCodeSerializers, \
                     ResetPasswordConfirmSerializer, ResetPasswordRequestSerializer, \
-                        CreateDoctorSerializer, ProfileDoctorSerializer, ProfilePatientSerializer
+                        CreateDoctorSerializer, ProfileDoctorSerializer, ProfilePatientSerializer,\
+                        UpdateProfileDoctorSerializer, UpdateProfilePatientSerializer
 from .models import OtpCode, Doctor, Patient
 from .permissions import IsDoctor, IsPatient
 
@@ -90,7 +91,8 @@ class CreateDoctorViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 
 
-class DoctorProfileViewSet(viewsets.ModelViewSet):
+class DoctorProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin, viewsets.GenericViewSet):
     queryset = Doctor.objects.select_related('user')
     serializer_class = ProfileDoctorSerializer
     permission_classes = [permissions.IsAuthenticated, IsDoctor]
@@ -99,9 +101,23 @@ class DoctorProfileViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return self.queryset
-        return Doctor.objects.filter(user=user) 
+        return Doctor.objects.filter(user=user)
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return UpdateProfileDoctorSerializer
+        return super().get_serializer_class()
+    
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
 
-class PatientProfileViewSet(viewsets.ModelViewSet):
+
+class PatientProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    
     queryset = Patient.objects.select_related('user')
     serializer_class = ProfilePatientSerializer
     permission_classes = [permissions.IsAuthenticated, IsPatient]
@@ -110,5 +126,17 @@ class PatientProfileViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return self.queryset
-        return Patient.objects.filter(user=user) 
+        return Patient.objects.filter(user=user)
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return UpdateProfilePatientSerializer
+        return super().get_serializer_class()
+    
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
     

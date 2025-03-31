@@ -187,7 +187,7 @@ class GetUserSerializer(serializers.ModelSerializer):
 
 
 class ProfilePatientSerializer(serializers.ModelSerializer):
-    user = GetUserSerializer()
+    user = GetUserSerializer(read_only=True)
 
     class Meta:
         model = Patient
@@ -195,9 +195,27 @@ class ProfilePatientSerializer(serializers.ModelSerializer):
 
 
 class ProfileDoctorSerializer(serializers.ModelSerializer):
-    user = GetUserSerializer()
+    user = GetUserSerializer(read_only=True)
     
     class Meta:
         model = Doctor
         fields = '__all__'
         
+
+class UpdateProfilePatientSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer(read_only=True)
+    brithday = serializers.DateField(format="%Y-%m-%d")
+
+    class Meta:
+        model = Patient
+        fields = ['id', 'user', 'avatar', 'national_code', 'brithday', 'gender', 'about_me', 'address']
+
+
+class UpdateProfileDoctorSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer(read_only=True)
+    brithday = serializers.DateField(format="%Y-%m-%d")
+
+    class Meta:
+        model = Doctor
+        fields = ['id' ,'avatar', 'national_code', 'brithday', 'about_me', 'address', 'Medical_system_code', 'specialty', 'experience_years']
+
