@@ -1,20 +1,20 @@
 from django.urls import path
-from rest_framework.routers import DefaultRouter
 from . import views
 
 
-router = DefaultRouter()
-router.register("register_patient", views.CreatePatientViewSet, basename='register_patient')
-router.register("verify", views.VerifyCodeViewSet, basename='verify')
-router.register("resend_code", views.ResendCodeViewSet, basename='resend_code')
-router.register("request_reset_password", views.RequestPasswordResetViewSet, basename='reset_password')
-router.register("confirm_reset_password", views.ConfirmResetPasswordViewSet, basename='confirm_reset_password')
-router.register("register_doctor", views.CreateDoctorViewSet, basename='register_doctor')
-router.register("patient_profile", views.PatientProfileViewSet, basename='patient_profile')
-router.register("doctor_profile", views.DoctorProfileViewSet, basename='doctor_profile')
-
 app_name = 'auth'
 
-urlpatterns = router.urls + [
-    path('reset-password/<uuid:token>/', views.ConfirmResetPasswordViewSet.as_view({'post': 'create'}), name='reset-password'),
+urlpatterns = [
+    path('register_patient/', views.CreatePatientAPIView.as_view(), name='register_patient'),
+    path('verify_patient/', views.VerifyCodeAPIView.as_view(), name='verify_patient'),
+    path('resend_code/', views.ResendCodeAPIView.as_view(), name='resend_code'),
+    path('request_reset_password/', views.RequestPasswordResetAPIView.as_view(), name='request_reset_password'),
+    path('reset-password/<uuid:token>/', views.ConfirmResetPasswordViewSet.as_view(), name='reset-password'),
+    path('register_doctor/', views.CreateDoctorAPIView.as_view(), name='register_doctor'),
+    path('list_doctor/', views.ListDoctorProfileAPIView.as_view(), name='list_doctor'),
+    path('profile_doctor/<int:pk>/', views.RetriveDoctorProfileAPIView.as_view(), name='profile_doctor'),
+    path('profile_doctor/update/<int:pk>/', views.UpdateDoctorProfileAPIView.as_view(), name='update_doctor'),
+    path('profile_patient/<int:pk>/', views.RetrivePatientProfileAPIView.as_view(), name='profile_patient'),
+    path('list_profile_patient', views.ListPatientProfileAPIView.as_view(), name='list_profile_patient'),
+    path('profile_patient/update/<int:pk>/', views.UpdatePatientProfileAPIView.as_view(), name='update_profile_patient'),
 ]

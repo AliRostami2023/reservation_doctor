@@ -1,30 +1,27 @@
-from rest_framework import viewsets, status, permissions, mixins
-from rest_framework.response import Response
-from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from .serializers import CreatePatientSerializer, VerifyCodeSerializer, ResendCodeSerializers, \
-                    ResetPasswordConfirmSerializer, ResetPasswordRequestSerializer, \
-                        CreateDoctorSerializer, ProfileDoctorSerializer, ProfilePatientSerializer,\
-                        UpdateProfileDoctorSerializer, UpdateProfilePatientSerializer
+from django.contrib.auth import get_user_model
+from django.http import Http404
+from rest_framework import status, permissions, generics
+from rest_framework.response import Response
+from .serializers import *
 from .models import OtpCode, Doctor, Patient
 from .permissions import IsDoctor, IsPatient
 
 User = get_user_model()
 
 
-class CreatePatientViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class CreatePatientAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = CreatePatientSerializer
 
-
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'message': _("کد تایید برای شما ارسال شد")}, status.HTTP_200_OK)
     
 
-class VerifyCodeViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class VerifyCodeAPIView(generics.CreateAPIView):
     queryset = OtpCode.objects.select_related("user")
     serializer_class = VerifyCodeSerializer
 
@@ -32,19 +29,18 @@ class VerifyCodeViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     def get_serializer_context(self):
         return {'reauest': self.request}
 
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("ثبت نام با موفقیت انجام شد")}, status.HTTP_201_CREATED)
     
 
-class ResendCodeViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class ResendCodeAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = ResendCodeSerializers
 
-
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
 
         serializer.is_valid(raise_exception=True)
@@ -52,12 +48,12 @@ class ResendCodeViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return Response({'message': _('کد تایید مجدد ارسال شد.')}, status.HTTP_200_OK)
 
 
-class RequestPasswordResetViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class RequestPasswordResetAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = ResetPasswordRequestSerializer
 
 
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -66,12 +62,11 @@ class RequestPasswordResetViewSet(mixins.CreateModelMixin, viewsets.GenericViewS
 
 
 
-class ConfirmResetPasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class ConfirmResetPasswordViewSet(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = ResetPasswordConfirmSerializer
 
-
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -79,11 +74,11 @@ class ConfirmResetPasswordViewSet(mixins.CreateModelMixin, viewsets.GenericViewS
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
 
-class CreateDoctorViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class CreateDoctorAPIView(generics.CreateAPIView):
     queryset = Doctor.objects.all()
     serializer_class = CreateDoctorSerializer
 
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -91,52 +86,54 @@ class CreateDoctorViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 
 
-class DoctorProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class ListDoctorProfileAPIView(generics.ListAPIView):
     queryset = Doctor.objects.select_related('user')
-    serializer_class = ProfileDoctorSerializer
+    serializer_class = ListProfileDoctorSerializer
+    
+    
+class RetriveDoctorProfileAPIView(generics.RetrieveAPIView):
+    queryset = Doctor.objects.select_related('user')
+    serializer_class = RetriveProfileDoctorSerializer
+    
+    
+class UpdateDoctorProfileAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
+    queryset = Doctor.objects.select_related('user')
+    serializer_class = UpdateProfileDoctorSerializer
     permission_classes = [permissions.IsAuthenticated, IsDoctor]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_staff:
-            return self.queryset
-        return Doctor.objects.filter(user=user)
     
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return UpdateProfileDoctorSerializer
-        return super().get_serializer_class()
-    
-    def get(self, request, *args, **kwargs):
-        if 'pk' in kwargs:
-            return self.retrieve(request, *args, **kwargs)
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [permissions.IsAdminUser()]
         else:
-            return self.list(request, *args, **kwargs)
-
-
-class PatientProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin, viewsets.GenericViewSet):
+            return super().get_permissions()
     
+
+
+class ListPatientProfileAPIView(generics.RetrieveAPIView):
     queryset = Patient.objects.select_related('user')
-    serializer_class = ProfilePatientSerializer
+    serializer_class = RetriveProfilePatientSerializer
+        
+
+class RetrivePatientProfileAPIView(generics.RetrieveAPIView):
+    queryset = Patient.objects.select_related('user')
+    serializer_class = RetriveProfilePatientSerializer
     permission_classes = [permissions.IsAuthenticated, IsPatient]
 
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_staff:
-            return self.queryset
-        return Patient.objects.filter(user=user)
+    def get_object(self):
+        try:
+            return self.queryset.get(user=self.request.user)
+        except Doctor.DoesNotExist:
+            raise Http404("پروفایل دکتری برای این کاربر یافت نشد.")
     
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return UpdateProfilePatientSerializer
-        return super().get_serializer_class()
     
-
-    def get(self, request, *args, **kwargs):
-        if 'pk' in kwargs:
-            return self.retrieve(request, *args, **kwargs)
+class UpdatePatientProfileAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
+    queryset = Patient.objects.select_related('user')
+    serializer_class = UpdateProfilePatientSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [permissions.IsAdminUser()]
         else:
-            return self.list(request, *args, **kwargs)
-    
+            return super().get_permissions()
+

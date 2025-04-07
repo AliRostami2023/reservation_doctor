@@ -125,6 +125,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
         reset_token.is_used = True
         reset_token.save()
 
+
 class ResendCodeSerializers(serializers.Serializer):
     phone_number = serializers.CharField(required=True, max_length=11)
 
@@ -186,7 +187,7 @@ class GetUserSerializer(serializers.ModelSerializer):
         fields = ['full_name', 'phone_number', 'email', 'last_login']
 
 
-class ProfilePatientSerializer(serializers.ModelSerializer):
+class ListProfilePatientSerializer(serializers.ModelSerializer):
     user = GetUserSerializer(read_only=True)
 
     class Meta:
@@ -194,13 +195,13 @@ class ProfilePatientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ProfileDoctorSerializer(serializers.ModelSerializer):
+class RetriveProfilePatientSerializer(serializers.ModelSerializer):
     user = GetUserSerializer(read_only=True)
-    
+
     class Meta:
-        model = Doctor
+        model = Patient
         fields = '__all__'
-        
+
 
 class UpdateProfilePatientSerializer(serializers.ModelSerializer):
     user = GetUserSerializer(read_only=True)
@@ -209,6 +210,22 @@ class UpdateProfilePatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = ['id', 'user', 'avatar', 'national_code', 'brithday', 'gender', 'about_me', 'address']
+
+
+class ListProfileDoctorSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+
+class RetriveProfileDoctorSerializer(serializers.ModelSerializer):
+    user = GetUserSerializer(read_only=True)
+    
+    class Meta:
+        model = Doctor
+        fields = '__all__'
 
 
 class UpdateProfileDoctorSerializer(serializers.ModelSerializer):
