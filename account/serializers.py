@@ -234,5 +234,5 @@ class UpdateProfileDoctorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Doctor
-        fields = ['id' ,'avatar', 'national_code', 'brithday', 'about_me', 'address', 'Medical_system_code', 'specialty', 'experience_years']
+        fields = ['id', 'user','avatar', 'national_code', 'brithday', 'about_me', 'address', 'Medical_system_code', 'specialty', 'experience_years']
 
