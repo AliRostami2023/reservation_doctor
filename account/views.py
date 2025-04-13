@@ -109,7 +109,7 @@ class UpdateDoctorProfileAPIView(generics.UpdateAPIView, generics.DestroyAPIView
     
 
 
-class ListPatientProfileAPIView(generics.RetrieveAPIView):
+class ListPatientProfileAPIView(generics.ListAPIView):
     queryset = Patient.objects.select_related('user')
     serializer_class = RetriveProfilePatientSerializer
         
@@ -122,14 +122,20 @@ class RetrivePatientProfileAPIView(generics.RetrieveAPIView):
     def get_object(self):
         try:
             return self.queryset.get(user=self.request.user)
-        except Doctor.DoesNotExist:
-            raise Http404("پروفایل دکتری برای این کاربر یافت نشد.")
+        except Patient.DoesNotExist:
+            raise Http404("پروفایل بیماری برای این کاربر یافت نشد.")
     
     
 class UpdatePatientProfileAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
     queryset = Patient.objects.select_related('user')
     serializer_class = UpdateProfilePatientSerializer
     permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def get_object(self):
+        try:
+            return self.queryset.get(user=self.request.user)
+        except Patient.DoesNotExist:
+            raise Http404("پروفایل بیماری برای این کاربر یافت نشد.")
     
     def get_permissions(self):
         if self.request.method == "DELETE":

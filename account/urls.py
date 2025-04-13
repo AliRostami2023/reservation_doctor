@@ -14,7 +14,7 @@ urlpatterns = [
     path('list_doctor/', views.ListDoctorProfileAPIView.as_view(), name='list_doctor'),
     path('profile_doctor/<int:pk>/', views.RetriveDoctorProfileAPIView.as_view(), name='profile_doctor'),
     path('profile_doctor/update/<int:pk>/', views.UpdateDoctorProfileAPIView.as_view(), name='update_doctor'),
-    path('profile_patient/<int:pk>/', views.RetrivePatientProfileAPIView.as_view(), name='profile_patient'),
-    path('list_profile_patient', views.ListPatientProfileAPIView.as_view(), name='list_profile_patient'),
-    path('profile_patient/update/<int:pk>/', views.UpdatePatientProfileAPIView.as_view(), name='update_profile_patient'),
+    path('profile_patient/', views.RetrivePatientProfileAPIView.as_view(), name='profile_patient'),
+    path('list_profile_patient/', views.ListPatientProfileAPIView.as_view(), name='list_profile_patient'),
+    path('profile_patient/update/', views.UpdatePatientProfileAPIView.as_view(), name='update_profile_patient'),
 ]
