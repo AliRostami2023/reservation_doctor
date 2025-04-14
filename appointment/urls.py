@@ -1,12 +1,19 @@
+from django.urls import path
+from . import views
 
-from rest_framework.routers import DefaultRouter
-from .views import AvailableTimeViewSet, AppointmentViewSet
-
-
-router = DefaultRouter()
-router.register('available_times', AvailableTimeViewSet, basename='available_times')
-router.register('appointments', AppointmentViewSet, basename='appointments')
 
 app_name = 'appointment'
 
-urlpatterns = router.urls
+urlpatterns = [
+    # Available Times
+    path('doctor/available-times/', views.ListAvailableTimeView.as_view(), name='available-times-list'),
+    path('doctor/available-times/create/', views.CreateAvailableTimeView.as_view(), name='available-times-create'),
+    path('doctor/available-times/update/<int:pk>/', views.UpdateDeleteAvailableTimeView.as_view(), name='available-times-update-delete'),
+
+    # Appointments for patient
+    path('patient/appointments/', views.ListAppointmentView.as_view(), name='appointments-list'),
+    path('patient/appointments/create/', views.CreateAppointmentView.as_view(), name='appointments-create'),
+
+    # Public doctor available times
+    path('available-times/', views.PublicAvailableTimesForDoctorView.as_view(), name='public-doctor-available-times'),
+]
