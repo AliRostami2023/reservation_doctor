@@ -66,30 +66,29 @@ class VerifyCodeSerializer(serializers.ModelSerializer):
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
-
-    def validate_email(self, value):
-        try:
-            User.objects.get(email=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(_('کاربری با این ایمیل یافت نشد'))
-        return value
         
 
     def create(self, validated_data):
-        user = User.objects.get(email=validated_data['email'])
-        reset_token = PasswordResetToken.objects.create(user=user)
+        email = validated_data['email']
+        try:
+            user = User.objects.get(email=email)
+            reset_token = PasswordResetToken.objects.create(user=user)
 
-        reset_link = f"{self.context['request'].build_absolute_uri(reverse_lazy('auth:reset-password', kwargs={'token':str(reset_token.token)}))}"
-        
-        send_mail(
-            subject= "درخواست تغییر کلمه عبور",
-            message= f" /nبرای تغییر کلمه عبور بر روی لینک زیر کلیک کنید {reset_link}",
-            from_email= settings.EMAIL_HOST_USER,
-            recipient_list= [user.email],
-            fail_silently= False
-        )
+            reset_link = f"{self.context['request'].build_absolute_uri(reverse_lazy('auth:reset-password', kwargs={'token':str(reset_token.token)}))}"
 
-        return reset_token
+            send_mail(
+                subject= "درخواست تغییر کلمه عبور",
+                message= f" /nبرای تغییر کلمه عبور بر روی لینک زیر کلیک کنید {reset_link}",
+                from_email= settings.EMAIL_HOST_USER,
+                recipient_list= [user.email],
+                fail_silently= False
+            )
+
+            return reset_token
+        except User.DoesNotExist:
+            pass
+
+        return validated_data
 
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):

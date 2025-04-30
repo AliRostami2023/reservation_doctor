@@ -27,8 +27,8 @@ def validate_avatar_size(image):
     
 
 def validate_avatar_dimensions(image):
-    max_width = 200
-    max_height = 200
+    max_width = 3840
+    max_height = 2160
 
     with Image.open(image) as img:
         width, height = img.size
