@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     'rest_framework_simplejwt',
     "django_filters",
+    "django_recaptcha",
     'taggit',
     "corsheaders",
     'drf_spectacular'
@@ -159,6 +160,19 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'account.throttles.PhoneNumberRateThrottle',
+        'account.throttles.EmailResetThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+        'sms_code': '3/hour',
+        'reset_email': '10/day',
+    }
 }
 
 
@@ -196,8 +210,8 @@ CORS_ALLOW_HEADERS = (
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_USER = 'alirostami1253@gmail.com'
+EMAIL_HOST_PASSWORD = 'wyumiljhjbwbfste'
 EMAIL_PORT = 587
 
 
@@ -228,3 +242,7 @@ CACHES = {
  }
 }
 
+
+# RECAPTCHA_PUBLIC_KEY = 'your-site-key'
+RECAPTCHA_PRIVATE_KEY = '6Lfj-i4rAAAAAP3Zw7TqSybO5FnkXwuRsqWcD8tx'
+SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
