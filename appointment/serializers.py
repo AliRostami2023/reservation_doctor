@@ -1,11 +1,10 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from .models import AvailableTime, Appointment, AppointmentDay
-from .mixins import PersianDateMixin
 from account.models import Doctor
 
 
-class AvailableTimeCreateSerializer(PersianDateMixin, serializers.ModelSerializer):
+class AvailableTimeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AvailableTime
         fields = ['id', 'doctor', 'date', 'start_time', 'end_time', 'is_active']
@@ -57,7 +56,7 @@ class AvailableTimeUpdateSerializer(serializers.ModelSerializer):
     
 
 
-class AppointmentCreateSerializer(PersianDateMixin, serializers.ModelSerializer):
+class AppointmentCreateSerializer(serializers.ModelSerializer):
     doctor = serializers.PrimaryKeyRelatedField(
         queryset=Doctor.objects.all(),
         required=True,
