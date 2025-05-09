@@ -101,10 +101,6 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_('شما قبلاً در این زمان نوبت گرفته‌اید.'))
 
         return attrs
-
-    def create(self, validated_data):
-        validated_data['patient'] = self.context['request'].user.patient_user
-        return super().create(validated_data)
     
 
 class AppointmentListSerializer(serializers.ModelSerializer):

@@ -1,3 +1,5 @@
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from .models import AvailableTime, Appointment
@@ -47,8 +49,33 @@ class ListAppointmentView(generics.ListAPIView):
     serializer_class = AppointmentListSerializer
     permission_classes = [IsAuthenticated, IsPatient]
 
-    def get_queryset(self):
-        return self.queryset.filter(patient=self.request.user.patient_user)
+    def perform_create(self, serializer):
+        request = self.request
+        patient = request.user.patient_user
+        doctor = serializer.validated_data['doctor']
+        date = serializer.validated_data['date']
+        time = serializer.validated_data['time']
+
+        with transaction.atomic():
+            available = AvailableTime.objects.select_for_update().filter(
+                doctor=doctor,
+                date=date,
+                start_time__lte=time,
+                end_time__gte=time,
+                is_active=True
+            )
+
+            if not available.exists():
+                raise serializers.ValidationError(_('این زمان توسط پزشک در دسترس نیست.'))
+
+            if Appointment.objects.filter(
+                patient=patient,
+                date=date,
+                time=time
+            ).exists():
+                raise serializers.ValidationError(_('شما قبلاً در این زمان نوبت گرفته‌اید.'))
+
+            serializer.save(patient=patient)
     
 
 class PublicAvailableTimesForDoctorView(generics.ListAPIView):
