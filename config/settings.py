@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -244,5 +245,5 @@ CACHES = {
 
 
 # RECAPTCHA_PUBLIC_KEY = 'your-site-key'
-RECAPTCHA_PRIVATE_KEY = '6Lfj-i4rAAAAAP3Zw7TqSybO5FnkXwuRsqWcD8tx'
+RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY')
 SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
