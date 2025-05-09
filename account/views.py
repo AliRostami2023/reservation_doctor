@@ -6,6 +6,9 @@ from django.http import Http404
 from django.utils import timezone
 from django.urls import reverse_lazy
 from django.core.mail import send_mail
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+from .filters import DoctorFilter
 from datetime import datetime, timedelta
 from rest_framework import status, permissions, generics
 from rest_framework.response import Response
@@ -190,6 +193,9 @@ class CreateDoctorAPIView(generics.CreateAPIView):
 class ListDoctorProfileAPIView(generics.ListAPIView):
     queryset = Doctor.objects.select_related('user')
     serializer_class = ListProfileDoctorSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = DoctorFilter
+    search_fields = ['full_name', 'specialty']
     
     
 class RetriveDoctorProfileAPIView(generics.RetrieveAPIView):
