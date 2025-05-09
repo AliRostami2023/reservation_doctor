@@ -1,14 +1,9 @@
-import random
-from rest_framework import serializers
+import requests
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from django.urls import reverse_lazy
-from django.core.mail import send_mail
-from django.db import transaction, IntegrityError
 from django.conf import settings
-from datetime import datetime, timedelta
+from rest_framework import serializers
 from .models import OtpCode, PasswordResetToken, Doctor, Patient
-from .random_code_otp import random_otp_code
 
 User = get_user_model()
 
@@ -19,80 +14,44 @@ class CreatePatientSerializer(serializers.ModelSerializer):
         model = User
         fields = ['full_name', 'email', 'phone_number', 'password']
         extra_kwargs = {'password': {'write_only': True}}
-
-
-    def create(self, validated_data):
-        validated_data['user_type'] = 'patient'
-        with transaction.atomic():
-            user = User.objects.create_user(**validated_data)
-
-            expired_date = datetime.now() + timedelta(minutes=2)
-            OtpCode.objects.create(user=user, code=random_otp_code(), expired_date=expired_date)
-            print(f"your code is : {random_otp_code()}")
-            return user
     
 
-class VerifyCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OtpCode
-        fields = ['code']
-        read_only_fields = ['user', 'expired_date']
+class OtpVerifySerializer(serializers.Serializer):
+    phone_number = serializers.CharField(max_length=11)
+    code = serializers.CharField(max_length=5)
 
-
-    def validate(self, attrs):
-        phone_number = self.context['request'].user
-        code = attrs.get("code")
-
+    def validate(self, data):
         try:
-            user = User.objects.get(phone_number=phone_number)
+            user = User.objects.get(phone_number=data['phone_number'])
+            try:
+                otp = OtpCode.objects.get(user=user)
+                if otp.expired_date_over():
+                    otp.delete_otp()
+                    raise serializers.ValidationError(_('کد تایید منقضی شده است'))
+                if otp.code != data['code']:
+                    raise serializers.ValidationError(_('کد تایید نادرست است'))
+            except OtpCode.DoesNotExist:
+                raise serializers.ValidationError(_('کد تایید یافت نشد'))
         except User.DoesNotExist:
-            raise serializers.ValidationError(_("کاربری با این مشخصات وجود ندارد!"))
+            raise serializers.ValidationError(_('کاربری با این شماره تلفن یافت نشد'))
         
-        otp = OtpCode.objects.filter(user=user, code=code).first()
-
-        if not code:
-            raise serializers.ValidationError(_("!کد تایید اشتباه است"))
-        
-        if otp.expired_date_over():
-            otp.delete_otp()
-            raise serializers.ValidationError(_("کد منقضی شده است!"))
-        
-        user.is_active = True
-        user.save()
-
-        otp.delete()
-        return attrs
+        return data
+    
 
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
         
 
-    def create(self, validated_data):
-        email = validated_data['email']
-        try:
-            user = User.objects.get(email=email)
-            reset_token = PasswordResetToken.objects.create(user=user)
-
-            reset_link = f"{self.context['request'].build_absolute_uri(reverse_lazy('auth:reset-password', kwargs={'token':str(reset_token.token)}))}"
-
-            send_mail(
-                subject= "درخواست تغییر کلمه عبور",
-                message= f" /nبرای تغییر کلمه عبور بر روی لینک زیر کلیک کنید {reset_link}",
-                from_email= settings.EMAIL_HOST_USER,
-                recipient_list= [user.email],
-                fail_silently= False
-            )
-
-            return reset_token
-        except User.DoesNotExist:
-            pass
-
-        return validated_data
+    def validate_email(self, value):
+        email = value.lower().strip()
+        if not User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(_('کاربری با این ایمیل وجود ندارد !!!'))
+        return email
 
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):
-    token = serializers.UUIDField()
+    token = serializers.CharField(read_only=True)
     new_password = serializers.CharField()
     confirm_password = serializers.CharField()
 
@@ -104,7 +63,9 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError(_('لطفا کلمه عبور یکسان وارد کنید!'))
         elif len(password1) < 8:
             raise serializers.ValidationError(_('کلمه عبور باید شامل 8 کاراکتر یا عدد باشد !!!'))
-        return password1
+        
+        return attrs
+
 
     def validate_token(self, value):
         try:
@@ -115,14 +76,6 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
         if not reset_token.is_valid():
             raise serializers.ValidationError(_('لینک مقضی شده است!'))
         return value
-    
-    def save(self, **kwargs):
-        reset_token = PasswordResetToken.objects.get(token=self.validated_data['token'])
-        user = reset_token.user
-        user.set_password(self.validated_data['new_password'])
-        user.save()
-        reset_token.is_used = True
-        reset_token.save()
 
 
 class ResendCodeSerializers(serializers.Serializer):
@@ -137,48 +90,33 @@ class ResendCodeSerializers(serializers.Serializer):
         return value
 
 
-    def create(self, validated_data):
-        user = User.objects.get(phone_number=validated_data['phone_number'])
-
-        otp_code = random_otp_code()
-        expire_date = datetime.now() + timedelta(minutes=2)
-
-        OtpCode.objects.update_or_create(user=user, defaults={'code': otp_code, 'expired_date': expire_date})
-
-        print(f"Resend code for {user.phone_number} : {otp_code}")
-        return user
-
-
 class CreateDoctorSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='user.full_name')
     phone_number = serializers.CharField(source='user.phone_number')
     email = serializers.EmailField(source='user.email')
+    captcha_response = serializers.CharField(write_only=True)
 
     class Meta:
         model = Doctor
-        fields = ['full_name', 'email', 'phone_number', 'Medical_system_code', 'specialty', 'experience_years']
+        fields = ['full_name', 'email', 'phone_number', 'Medical_system_code', 'specialty',
+                  'captcha_response', 'experience_years']
 
-    def create(self, validated_data):
-        user_data = validated_data.pop('user')
+    def validate_recaptcha(self, captcha_response):
+        """اعتبارسنجی reCAPTCHA با سرور گوگل"""
 
-        with transaction.atomic():
-            user, created = User.objects.get_or_create(is_active=False, email=user_data['email'], defaults=user_data)
-
-            if created or user.user_type != 'doctor':
-                user.user_type = 'doctor'
-                random_pass = random.randint(10000000, 99999999)
-                user.password = (str(random_pass))
-                user.save()
-
-            if Doctor.objects.filter(user=user).exists():
-                raise serializers.ValidationError(_("این پزشک قبلاً ثبت شده است."))
-
-            try:
-                doctor = Doctor.objects.create(user=user, **validated_data)
-                return doctor
-            except IntegrityError:
-                raise serializers.ValidationError(_("مشکلی در ثبت پزشک رخ داده است. لطفاً دوباره تلاش کنید."))
-            
+        secret_key = settings.RECAPTCHA_PRIVATE_KEY
+        response = requests.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            data={
+                'secret': secret_key,
+                'response': captcha_response
+            }
+        )
+        result = response.json()
+        if not result.get('success'):
+            raise serializers.ValidationError(_('reCAPTCHA verification failed.'))
+        return True
+    
 
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -233,5 +171,6 @@ class UpdateProfileDoctorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Doctor
-        fields = ['id', 'user','avatar', 'national_code', 'brithday', 'about_me', 'address', 'Medical_system_code', 'specialty', 'experience_years']
+        fields = ['id', 'user', 'avatar', 'national_code', 'brithday', 'about_me', 'address',
+                   'Medical_system_code', 'specialty', 'experience_years']
 
