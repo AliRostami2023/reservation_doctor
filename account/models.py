@@ -113,7 +113,7 @@ class OtpCode(CreateMixin):
 
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset')
-    token = models.CharField(max_length=100, unique=True, default=get_random_string(72))
+    token = models.CharField(max_length=300, unique=True, default=get_random_string(250))
     created = models.DateTimeField(auto_now_add=True)
     is_used = models.BooleanField(default=False)
 
