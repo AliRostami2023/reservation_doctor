@@ -233,17 +233,17 @@ SPECTACULAR_SETTINGS = {
 }
 
 
-CACHES = {
-    "default": {
-    "BACKEND": "django_redis.cache.RedisCache",
-    "LOCATION": "redis://127.0.0.1:6379/1",
-    "OPTIONS": {
-    "CLIENT_CLASS": "django_redis.client.DefaultClient",
-  }
- }
-}
+# CACHES = {
+#     "default": {
+#     "BACKEND": "django_redis.cache.RedisCache",
+#     "LOCATION": "redis://127.0.0.1:6379/1",
+#     "OPTIONS": {
+#     "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#   }
+#  }
+# }
 
 
 # RECAPTCHA_PUBLIC_KEY = 'your-site-key'
-RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY')
+RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', "")
 SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
