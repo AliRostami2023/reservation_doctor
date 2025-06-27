@@ -53,10 +53,34 @@ class User(AbstractBaseUser, PermissionsMixin, CreateMixin):
         return self.is_admin
     
 
+
+
+class DentalSpecialty(models.TextChoices):
+    """
+    Choices for dental specialties, available in both English and Persian.
+    """
+    ORTHODONTICS = 'ORTHO', _('ارتودانتیکس')
+    PERIODONTICS = 'PERIO', _('پریودانتیکس')
+    ENDODONTICS = 'ENDO', _('اندودانتیکس')
+    PROSTHODONTICS = 'PROS', _('پروتزهای دندانی')
+    ORAL_MAXILLOFACIAL_SURGERY = 'OMFS', _('جراحی فک و صورت')
+    PEDIATRIC_DENTISTRY = 'PED', _('دندانپزشکی کودکان')
+    RESTORATIVE_ESTHETIC = 'REST', _('دندانپزشکی ترمیمی و زیبایی')
+    ORAL_MAXILLOFACIAL_RADIOLOGY = 'OMFR', _('رادیولوژی فک و صورت')
+    ORAL_MAXILLOFACIAL_PATHOLOGY = 'OMFP', _('آسیب‌شناسی فک و صورت')
+    DENTAL_PUBLIC_HEALTH = 'DPH', _('بهداشت عمومی دندان')
+    IMPLANTOLOGY = 'IMPL', _('ایمپلنتولوژی')
+
+
+
 class Doctor(CreateMixin, UpdateMixin, InformationUser):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor_profile', verbose_name=_('کاربر'))
     Medical_system_code = models.CharField(max_length=12, verbose_name=_('کد نظام پزشکی'))
-    specialty = models.CharField(max_length=100, verbose_name=_('تخصص'))
+    specialty = models.CharField(
+        max_length=30, 
+        choices=DentalSpecialty.choices,
+        verbose_name=_('تخصص')
+    )
     experience_years = models.PositiveSmallIntegerField(default=0, verbose_name=_('سابقه کاری'))
 
     def __str__(self):
