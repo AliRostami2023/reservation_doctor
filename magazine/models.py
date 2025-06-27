@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth import get_user_model
 from taggit.managers import TaggableManager
-from slugify import slugify
+from django.utils.text import slugify
 from core.models import CreateMixin, UpdateMixin
 
 
