@@ -43,11 +43,11 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
         
 
-    def validate_email(self, value):
-        email = value.lower().strip()
-        if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError(_('کاربری با این ایمیل وجود ندارد !!!'))
-        return email
+    # def validate_email(self, value):
+    #     email = value.lower().strip()
+    #     if not User.objects.filter(email=email).exists():
+    #         raise serializers.ValidationError(_('کاربری با این ایمیل وجود ندارد !!!'))
+    #     return email
 
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):
@@ -91,19 +91,18 @@ class ResendCodeSerializers(serializers.Serializer):
 
 
 class CreateDoctorSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(source='user.full_name')
-    phone_number = serializers.CharField(source='user.phone_number')
-    email = serializers.EmailField(source='user.email')
+    full_name = serializers.CharField(source='user.full_name', label="نام و نام خانوادگی")
+    phone_number = serializers.CharField(source='user.phone_number', label="شماره همراه")
+    email = serializers.EmailField(source='user.email', label="ایمیل")
+    password = serializers.CharField(source='user.password', label="کلمه عبور")
     captcha_response = serializers.CharField(write_only=True)
 
     class Meta:
         model = Doctor
-        fields = ['full_name', 'email', 'phone_number', 'Medical_system_code', 'specialty',
-                  'captcha_response', 'experience_years']
+        fields = ['full_name', 'email', 'phone_number', 'password', 'Medical_system_code', 'specialty',
+                   'captcha_response', 'experience_years']
 
     def validate_recaptcha(self, captcha_response):
-        """اعتبارسنجی reCAPTCHA با سرور گوگل"""
-
         secret_key = settings.RECAPTCHA_PRIVATE_KEY
         response = requests.post(
             'https://www.google.com/recaptcha/api/siteverify',

@@ -1,4 +1,3 @@
-import random
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -167,8 +166,7 @@ class CreateDoctorAPIView(generics.CreateAPIView):
 
             if created or user.user_type != 'doctor':
                 user.user_type = 'doctor'
-                random_pass = random.randint(10000000, 99999999)
-                user.password(str(random_pass)) 
+                user.set_password(user_data['password'])
                 user.save()
 
             if Doctor.objects.filter(user=user).exists():
@@ -219,6 +217,7 @@ class UpdateDoctorProfileAPIView(generics.UpdateAPIView, generics.DestroyAPIView
 class ListPatientProfileAPIView(generics.ListAPIView):
     queryset = Patient.objects.select_related('user')
     serializer_class = RetriveProfilePatientSerializer
+    permission_classes = [permissions.IsAdminUser]
         
 
 class RetrivePatientProfileAPIView(generics.RetrieveAPIView):
