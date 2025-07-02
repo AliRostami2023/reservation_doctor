@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-839x6@l(rl4kw_8$^nm(dz7yp1ps*+0jkhe5+gmgwe)d&_)q4$'
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG")
 
 ALLOWED_HOSTS = []
 
@@ -169,9 +170,9 @@ REST_FRAMEWORK = {
         'account.throttles.EmailResetThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day',
-        'sms_code': '3/hour',
+        'anon': '1000/day',
+        'user': '3000/day',
+        'sms_code': '12/hour',
         'reset_email': '10/day',
     }
 }
@@ -211,8 +212,8 @@ CORS_ALLOW_HEADERS = (
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'alirostami1253@gmail.com'
-EMAIL_HOST_PASSWORD = 'wyumiljhjbwbfste'
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", "")
 EMAIL_PORT = 587
 
 
@@ -235,15 +236,29 @@ SPECTACULAR_SETTINGS = {
 
 CACHES = {
     "default": {
-    "BACKEND": "django_redis.cache.RedisCache",
-    "LOCATION": "redis://127.0.0.1:6379/1",
+        "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": "redis://127.0.0.1:6379",
     "OPTIONS": {
-    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
   }
  }
 }
 
 
 # RECAPTCHA_PUBLIC_KEY = 'your-site-key'
-RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', "")
+RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', "")
 SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
+
+
+# celery settings :
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0' 
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_ALWAYS_EAGER = False
+
+
+KAVENEGAR_API = config("KAVENEGAR_API")
