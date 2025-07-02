@@ -1,23 +1,26 @@
+import json
+from django.core.cache import cache
+from django.contrib.auth.hashers import make_password
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.http import Http404
-from django.utils import timezone
 from django.urls import reverse_lazy
 from django.core.mail import send_mail
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from .filters import DoctorFilter
-from datetime import datetime, timedelta
 from rest_framework import status, permissions, generics
 from rest_framework.response import Response
 from .serializers import *
-from .models import OtpCode, Doctor, Patient
+from .models import Doctor, Patient
 from .permissions import IsDoctor, IsPatient
 from .random_code_otp import random_otp_code
 from .throttles import PhoneNumberRateThrottle, EmailResetThrottle
+from utils.send_sms_otp import send_otp_register
 
 User = get_user_model()
+
 
 
 class CreatePatientAPIView(generics.CreateAPIView):
@@ -29,66 +32,82 @@ class CreatePatientAPIView(generics.CreateAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_data = serializer.validated_data
-        user_data['user_type'] = 'patient'
+        phone_number = user_data['phone_number']
+        otp = random_otp_code()
+        user_data['password'] = make_password(user_data['password'])
+        user_data['user_type'] = "patient"
+        user_data['otp'] = otp
+        user_data['full_name']
 
-        with transaction.atomic():
-            user = User.objects.create_user(**user_data)
+        data_key = f"otp_registration:{phone_number}"
 
-            expired_date = datetime.now() + timedelta(minutes=5)
-            otp_code = random_otp_code()
-            OtpCode.objects.create(user=user, code=otp_code, expired_date=expired_date)
-            print(f"your code is : {otp_code}")
+        cache.set(data_key, json.dumps(user_data), timeout=180)
 
-            return Response({'message': _("کد تایید برای شما ارسال شد")}, status.HTTP_201_CREATED)
+        send_otp_register.delay(phone_number, otp)
+        return Response({'message': _("کد تایید برای شما ارسال شد"), "otp": f"{otp}"}, status.HTTP_201_CREATED)
     
 
 class VerifyCodeAPIView(generics.CreateAPIView):
-    queryset = OtpCode.objects.select_related("user")
+    queryset = User.objects.all()
     serializer_class = OtpVerifySerializer
 
     def post(self, request):
-        with transaction.atomic():
-            serializer = self.serializer_class(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            phone_number = serializer.validated_data['phone_number']
-            code = serializer.validated_data['code']
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        phone_number = data['phone_number']
+        code = data['code']
 
-            try:    
-                user = User.objects.get(phone_number=phone_number)
-                otp = OtpCode.objects.get(user=user, code=code)
-    
-                user.is_active = True
-                user.save()
-                otp.delete()
-                return Response({"message": _("ثبت نام با موفقیت انجام شد.")}, status.HTTP_201_CREATED)
-            except (User.DoesNotExist, OtpCode.DoesNotExist):
-                return Response({"message": _("کاربر یافت نشد")})
+        data_key = f"otp_registration:{phone_number}"
+        cached_data = cache.get(data_key)
+
+        if not cached_data:
+            return Response({"message": _("اطلاعات منقضی شده است.")}, status.HTTP_400_BAD_REQUEST)
+        
+        data = json.loads(cached_data)
+
+        if str(data['otp']) != str(code):
+            return Response({"message": _("کد وارد شده صحیح نیست.")}, status.HTTP_400_BAD_REQUEST)
+        
+        with transaction.atomic():
+            User.objects.create_user(
+                phone_number=data['phone_number'],
+                email=data['email'],
+                full_name=data['full_name'],
+                password=data['password'],
+                user_type=data['user_type'],
+                is_active=True
+            )
+            cache.delete(data_key)
+
+        return Response({"message": _("ثبت‌نام با موفقیت انجام شد.")}, status.HTTP_201_CREATED)
     
 
 
 class ResendOtpCodeAPIView(generics.GenericAPIView):
-    queryset = OtpCode.objects.select_related("user")
+    queryset = User.objects.all()
     serializer_class = ResendCodeSerializers
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         phone_number = serializer.validated_data['phone_number']
-        user = User.objects.get(phone_number=phone_number)
-        code = random_otp_code()
-        OtpCode.objects.update_or_create(
-            user=user,
-            defaults={
-                "code": code,
-                "create_at": timezone.now(),
-                "expired_date": timezone.now() + timedelta(minutes=5)
-            }
-        )
 
-        print(f"code for {phone_number} is = {code}")
+        key = f"otp_registration:{phone_number}"
+        cache_data = cache.get(key)
 
-        return Response({"message": _("کد مجدد ارسال شد")})
+        if not cache_data:
+            return Response({"message": _("هیچ ثبت‌نام فعالی برای این شماره وجود ندارد.")}, status.HTTP_400_BAD_REQUEST)
+        
+        data = json.loads(cache_data)
+        otp = random_otp_code()
+        data['otp'] = otp
+
+        cache.set(key, json.dumps(data), timeout=180)
+
+        send_otp_register.delay(phone_number, otp)
+
+        return Response({"message": _("کد مجدد ارسال شد."), "otp": f"{otp}"}, status.HTTP_201_CREATED)
 
 
 

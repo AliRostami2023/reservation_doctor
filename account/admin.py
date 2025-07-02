@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Doctor, Patient, OtpCode, PasswordResetToken
+from .models import User, Doctor, Patient, PasswordResetToken
 from django.contrib.auth.models import Group
 
 
@@ -26,13 +26,6 @@ class DoctorAdmin(admin.ModelAdmin):
 class PatientAdmin(admin.ModelAdmin):
     list_display = ['user', 'national_code', 'address']
     search_fields = ['user', 'address']
-    list_per_page = 20
-
-
-@admin.register(OtpCode)
-class OtpCodeAdmin(admin.ModelAdmin):
-    list_display = ['user', 'code', 'expired_date']
-    search_fields = ['user']
     list_per_page = 20
 
 

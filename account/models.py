@@ -110,31 +110,6 @@ class Patient(CreateMixin, UpdateMixin, InformationUser):
         verbose_name_plural = _('بیماران')
 
 
-
-class OtpCode(CreateMixin):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_otp", verbose_name=_('کاربر'))
-    code = models.CharField(max_length=4, verbose_name=_('کد'))
-    expired_date = models.DateTimeField(_('تاریخ انقضا'))
-
-    def __str__(self):
-        return self.user.full_name
-    
-
-    class Meta:
-        verbose_name = _('کد تایید')
-        verbose_name_plural = _('کد های تایید')
-
-    
-    def expired_date_over(self):
-        return timezone.now() > self.expired_date
-
-    def delete_otp(self):
-        if self.expired_date_over():
-            self.delete()
-            return True
-        return False
-
-
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset')
     token = models.CharField(max_length=300, unique=True, default=get_random_string(250))

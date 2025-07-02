@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from rest_framework import serializers
-from .models import OtpCode, PasswordResetToken, Doctor, Patient
+from .models import PasswordResetToken, Doctor, Patient
 
 User = get_user_model()
 
@@ -14,29 +14,43 @@ class CreatePatientSerializer(serializers.ModelSerializer):
         model = User
         fields = ['full_name', 'email', 'phone_number', 'password']
         extra_kwargs = {'password': {'write_only': True}}
-    
 
+
+    def validate_phone_number(self, value):
+        from django.core.cache import cache
+
+        redis_key = f"otp_registration:{value}"
+        if cache.get(redis_key):
+            raise serializers.ValidationError(_("یک درخواست ثبت‌نام فعال برای این شماره وجود دارد. لطفاً کد را وارد کنید یا منتظر انقضا بمانید."))
+        return value
+    
+    
 class OtpVerifySerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=11)
-    code = serializers.CharField(max_length=5)
+    code = serializers.CharField(max_length=6)
 
     def validate(self, data):
+        from django.core.cache import cache
+        import json
+
+        phone_number = data['phone_number']
+        code = data['code']
+
+        redis_key = f"otp_registration:{phone_number}"
+        cached_data = cache.get(redis_key)
+
+        if not cached_data:
+            raise serializers.ValidationError(_("اطلاعات ثبت‌نامی پیدا نشد یا منقضی شده است."))
+
         try:
-            user = User.objects.get(phone_number=data['phone_number'])
-            try:
-                otp = OtpCode.objects.get(user=user)
-                if otp.expired_date_over():
-                    otp.delete_otp()
-                    raise serializers.ValidationError(_('کد تایید منقضی شده است'))
-                if otp.code != data['code']:
-                    raise serializers.ValidationError(_('کد تایید نادرست است'))
-            except OtpCode.DoesNotExist:
-                raise serializers.ValidationError(_('کد تایید یافت نشد'))
-        except User.DoesNotExist:
-            raise serializers.ValidationError(_('کاربری با این شماره تلفن یافت نشد'))
-        
+            data_dict = json.loads(cached_data)
+        except json.JSONDecodeError:
+            raise serializers.ValidationError(_("داده‌های ثبت‌نامی نامعتبر هستند."))
+
+        if str(data_dict.get('otp')) != str(code):
+            raise serializers.ValidationError(_("کد وارد شده صحیح نیست."))
+
         return data
-    
 
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
@@ -83,10 +97,11 @@ class ResendCodeSerializers(serializers.Serializer):
 
 
     def validate_phone_number(self, value):
-        try:
-            User.objects.get(phone_number=value)
-        except User.DoesNotExist:
-            raise  serializers.ValidationError(_("شماره تلفن وجود ندارد !"))
+        from django.core.cache import cache
+        
+        redis_key = f"otp_registration:{value}"
+        if not cache.get(redis_key):
+            raise serializers.ValidationError(_("هیچ ثبت‌نام فعالی برای این شماره وجود ندارد."))
         return value
 
 
