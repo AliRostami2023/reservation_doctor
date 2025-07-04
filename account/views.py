@@ -1,6 +1,5 @@
 import json
 from django.core.cache import cache
-from django.contrib.auth.hashers import make_password
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -34,7 +33,7 @@ class CreatePatientAPIView(generics.CreateAPIView):
         user_data = serializer.validated_data
         phone_number = user_data['phone_number']
         otp = random_otp_code()
-        user_data['password'] = make_password(user_data['password'])
+        user_data['password'] 
         user_data['user_type'] = "patient"
         user_data['otp'] = otp
         user_data['full_name']
@@ -170,8 +169,7 @@ class CreateDoctorAPIView(generics.CreateAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        captcha_response = serializer.validated_data.pop('captcha_response')
-        self.validate_recaptcha(captcha_response)
+        serializer.validated_data.pop('captcha_response')
 
         user_data = serializer.validated_data.pop('user')
         validated_data = serializer.validated_data

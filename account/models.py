@@ -21,7 +21,7 @@ class User(AbstractBaseUser, PermissionsMixin, CreateMixin):
 
     user_type = models.CharField(max_length=10, choices=USER_TYPE, verbose_name=_('نوع کاربر'))
     is_admin = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     objects = UserManager()
 
