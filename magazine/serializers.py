@@ -109,10 +109,7 @@ class UpdateBlogSerializer(serializers.ModelSerializer):
 
 class CreateBlogSerializer(serializers.ModelSerializer):
      author = serializers.CharField(source='author.full_name', read_only=True)
-     category = serializers.CharField(source='category.title')
 
      class Meta:
           model = Magazine
           fields = ['title', 'category', 'author', 'content', 'create_at', 'update_at']
-
-		

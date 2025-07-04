@@ -3,6 +3,7 @@ from rest_framework import generics, permissions
 from .serializers import *
 from .models import *
 from .paginations import MagazinePagination, ReviewPaginations
+from account.permissions import IsDoctor
 
 
 class ListCategoryBlogAPIView(generics.ListAPIView):
@@ -45,14 +46,20 @@ class RetriveBlogAPIView(generics.RetrieveAPIView):
 class CreateBlogAPIView(generics.CreateAPIView):
     queryset = Magazine.objects.select_related('category')
     serializer_class = CreateBlogSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsDoctor]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
     
 
 
 class UpdateBlogAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
     queryset = Magazine.objects.select_related('category')
     serializer_class = UpdateBlogSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsDoctor]
+
+    def get_object(self):
+        return Magazine.objects.filter(user=self.request.user)
 
 
 class CommentBlogListAPIView(generics.ListAPIView):
