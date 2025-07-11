@@ -86,25 +86,20 @@ class UpdateCategoryBlogSerializer(serializers.ModelSerializer):
 
 
 class ListRetriveBlogSerializer(serializers.ModelSerializer):
-    category = ListRetriveCategoryBlogSerializer()
+    category = serializers.CharField(source='category.name')
     author = serializers.CharField(source='author.full_name')
     comment_blog = CommentListSerializer(many=True, read_only=True, source='comments')
 
     class Meta:
         model = Magazine
-        fields = ['title', 'slug', 'author', 'category', 'content', 'comment_blog', 'create_at', 'update_at']
-
-
-	# def get_image(self, obj):
-	# 	if isinstance(obj.image, Image):
-	# 		return obj.image.image.url if obj.image.image else None
-	# 	return None
+        fields = ['title', 'slug', 'author', 'category',
+                   'content', 'comment_blog', 'create_at', 'update_at']
 
 
 class UpdateBlogSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Magazine
-		fields = ['title', 'category', 'content']
+		fields = ['title', 'category', 'image', 'content']
             
 
 class CreateBlogSerializer(serializers.ModelSerializer):
@@ -112,4 +107,4 @@ class CreateBlogSerializer(serializers.ModelSerializer):
 
      class Meta:
           model = Magazine
-          fields = ['title', 'category', 'author', 'content', 'create_at', 'update_at']
+          fields = ['title', 'category', 'image', 'author', 'content', 'create_at', 'update_at']

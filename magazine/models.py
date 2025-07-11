@@ -27,6 +27,7 @@ class Magazine(CreateMixin, UpdateMixin):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="author_blog", verbose_name=_('نویسنده'))
     title = models.CharField(max_length=500, verbose_name=_('عنوان مجله'))
     slug = models.SlugField(max_length=80, unique=True, allow_unicode=True, verbose_name=_('اسلاگ'))
+    image = models.ImageField(upload_to="image_magazine", null=True, blank=True, verbose_name=_('تصویر مقاله'))
     content = models.TextField(_('متن مقاله'))
 
     STATUS = (
