@@ -17,4 +17,5 @@ urlpatterns = [
     path('profile_patient/', views.RetrivePatientProfileAPIView.as_view(), name='profile_patient'),
     path('list_profile_patient/', views.ListPatientProfileAPIView.as_view(), name='list_profile_patient'),
     path('profile_patient/update/', views.UpdatePatientProfileAPIView.as_view(), name='update_profile_patient'),
+    path('me/role-id/', views.UserRoleAPIView.as_view(), name='get-role-id'),
 ]
