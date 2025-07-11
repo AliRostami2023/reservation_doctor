@@ -1,0 +1,62 @@
+services:
+
+  project:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: social_media
+    depends_on:
+      - postgres
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - main
+    volumes:
+      - .:/home/app
+      - ./static:/static
+      - ./media:/media
+    environment:
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_HOST=${DATABASE_HOST}
+
+  postgres:
+    image: postgres:13
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - main
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    depends_on:
+      - project
+    ports:
+      - "80:80"
+    volumes:
+      - ./static:/static
+      - ./media:/media
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - main
+
+networks:
+  main:
+
+volumes:
+  postgres_data:
+  
