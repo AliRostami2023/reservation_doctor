@@ -14,7 +14,16 @@ class CreateAvailableTimeView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsDoctor]
 
     def perform_create(self, serializer):
-        serializer.save(doctor=self.request.user.doctor_profile)
+        date_data = serializer.validated_data.pop("date")
+        day = date_data.get("day")
+
+        appointment_day, _ = AppointmentDay.objects.get_or_create(day=day)
+
+        serializer.save(
+            doctor=self.request.user.doctor_profile,
+            date=appointment_day
+        )
+
 
 
 class ListAvailableTimeView(generics.ListAPIView):

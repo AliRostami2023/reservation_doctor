@@ -4,15 +4,37 @@ from .models import AvailableTime, Appointment, AppointmentDay
 from account.models import Doctor
 
 
+class AppointmentDaySimpleSerializer(serializers.ModelSerializer):
+    day = serializers.DateField(required=True, format="%Y-%m-%d", input_formats=["%Y-%m-%d"])
+
+    class Meta:
+        model = AppointmentDay
+        fields = ['day']
+
+
 class AvailableTimeCreateSerializer(serializers.ModelSerializer):
+    date = AppointmentDaySimpleSerializer(required=True, label="تاریخ")
+    doctor = serializers.CharField(source='doctor.user.full_name', read_only=True)
+
+    start_time = serializers.TimeField(
+        required=True,
+        label='ساعت شروع',
+        format="%H:%M"
+    )
+    end_time = serializers.TimeField(
+        required=True,
+        label='ساعت پایان',
+        format="%H:%M"
+    )
+
     class Meta:
         model = AvailableTime
         fields = ['id', 'doctor', 'date', 'start_time', 'end_time', 'is_active']
-        read_only_fields = ['doctor']
 
     def validate(self, attrs):
         doctor = self.context['request'].user.doctor_profile
-        date = attrs.get("date")
+        date_data = attrs.get("date")
+        day = date_data.get("day")
         start = attrs.get("start_time")
         end = attrs.get("end_time")
 
@@ -21,7 +43,7 @@ class AvailableTimeCreateSerializer(serializers.ModelSerializer):
 
         overlap = AvailableTime.objects.filter(
             doctor=doctor,
-            date=date,
+            date__day=day,
             start_time__lt=end,
             end_time__gt=start,
         )
@@ -31,28 +53,24 @@ class AvailableTimeCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def create(self, validated_data):
-        validated_data['doctor'] = self.context['request'].user.doctor_profile
-        return super().create(validated_data)
     
 
 class AvailableTimeListSerializer(serializers.ModelSerializer):
-    date = serializers.SerializerMethodField()
+    date = serializers.CharField(source="date.day")
+    doctor = serializers.CharField(source='doctor.user.full_name', read_only=True)
 
     class Meta:
         model = AvailableTime
-        fields = ['id', 'date', 'start_time', 'end_time', 'is_active']
-        read_only_fields = ['doctor']
+        fields = ['id', 'doctor', 'date', 'start_time', 'end_time', 'is_active']
 
-    def get_date(self, obj):
-        return obj.date.strftime('%Y/%m/%d')
     
 
 class AvailableTimeUpdateSerializer(serializers.ModelSerializer):
+    doctor = serializers.CharField(source='doctor.user.full_name', read_only=True)
+    
     class Meta:
         model = AvailableTime
-        fields = ['id', 'date', 'start_time', 'end_time', 'is_active']
-        read_only_fields = ['doctor']
+        fields = ['id', 'doctor', 'date', 'start_time', 'end_time', 'is_active']
     
 
 
