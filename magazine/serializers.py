@@ -1,5 +1,6 @@
-from rest_framework import serializers
+from django.utils import timezone
 from django.contrib.auth import get_user_model
+from rest_framework import serializers
 from .models import CategoryMagazine, Magazine, Review
 
 
@@ -85,15 +86,53 @@ class UpdateCategoryBlogSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class DoctorSimpleSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['full_name', 'avatar']
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        doctor = getattr(obj, 'doctor_profile', None)
+        if doctor and doctor.avatar:
+            return request.build_absolute_uri(doctor.avatar.url) if request else doctor.avatar.url
+        return None
+    
+
 class ListRetriveBlogSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.name')
-    author = serializers.CharField(source='author.full_name')
+    author = DoctorSimpleSerializer(read_only=True)
     comment_blog = CommentListSerializer(many=True, read_only=True, source='comments')
+    time_since_created = serializers.SerializerMethodField()
 
     class Meta:
         model = Magazine
-        fields = ['title', 'slug', 'author', 'category',
-                   'content', 'comment_blog', 'create_at', 'update_at']
+        fields = ['title', 'slug', 'author', 'category', 'image',
+                   'content', 'comment_blog', 'create_at', 'update_at', 'time_since_created']
+
+
+    def get_time_since_created(self, obj):
+        now = timezone.now() 
+        if obj.create_at is None:
+            return None
+
+        if timezone.is_naive(obj.create_at):
+            create_at = timezone.make_aware(obj.create_at, timezone.get_default_timezone())
+        else:
+            create_at = obj.create_at
+
+        diff = now - create_at
+        days = diff.days
+        hours = diff.seconds // 3600
+
+        if days >= 1:
+            return f"{days} روز پیش"
+        elif hours >= 1:
+            return f"{hours} ساعت پیش"
+        else:
+            return "کمتر از یک ساعت پیش"
 
 
 class UpdateBlogSerializer(serializers.ModelSerializer):
@@ -101,6 +140,7 @@ class UpdateBlogSerializer(serializers.ModelSerializer):
 		model = Magazine
 		fields = ['title', 'category', 'image', 'content']
             
+    
 
 class CreateBlogSerializer(serializers.ModelSerializer):
      author = serializers.CharField(source='author.full_name', read_only=True)

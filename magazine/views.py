@@ -29,12 +29,10 @@ class UpdateCategoryBlogAPIView(generics.UpdateAPIView, generics.DestroyAPIView)
     
 
 
-class ListBlogAPIView(generics.ListAPIView,):
+class ListBlogAPIView(generics.ListAPIView):
     queryset = Magazine.objects.select_related('category')
     serializer_class = ListRetriveBlogSerializer
-    permissions_classes = [permissions.IsAdminUser]
     pagination_class = MagazinePagination
-    lookup_field = 'slug'
 
 
 class RetriveBlogAPIView(generics.RetrieveAPIView):
