@@ -50,41 +50,44 @@ class CreateAppointmentView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsPatient]
 
     def perform_create(self, serializer):
-        serializer.save(patient=self.request.user.patient_user)
-
-
-class ListAppointmentView(generics.ListAPIView):
-    queryset = Appointment.objects.all()
-    serializer_class = AppointmentListSerializer
-    permission_classes = [IsAuthenticated, IsPatient]
-
-    def perform_create(self, serializer):
-        request = self.request
-        patient = request.user.patient_user
+        patient = self.request.user.patient_user
         doctor = serializer.validated_data['doctor']
         date = serializer.validated_data['date']
         time = serializer.validated_data['time']
 
         with transaction.atomic():
+            try:
+                appointment_day = AppointmentDay.objects.get(day=date['day'])
+            except AppointmentDay.DoesNotExist:
+                raise serializers.ValidationError(_('تاریخ موردنظر یافت نشد.'))
+
             available = AvailableTime.objects.select_for_update().filter(
                 doctor=doctor,
-                date=date,
+                date=appointment_day,
                 start_time__lte=time,
                 end_time__gte=time,
                 is_active=True
             )
-
             if not available.exists():
                 raise serializers.ValidationError(_('این زمان توسط پزشک در دسترس نیست.'))
 
-            if Appointment.objects.filter(
-                patient=patient,
-                date=date,
-                time=time
-            ).exists():
+            if Appointment.objects.filter(patient=patient, date=appointment_day, time=time).exists():
                 raise serializers.ValidationError(_('شما قبلاً در این زمان نوبت گرفته‌اید.'))
 
-            serializer.save(patient=patient)
+            Appointment.objects.create(
+                patient=patient,
+                doctor=doctor,
+                date=appointment_day,
+                time=time,
+                is_confirmed=True
+            )
+
+
+
+class ListAppointmentView(generics.ListAPIView):
+    queryset = Appointment.objects.all()
+    serializer_class = PatientAppointmentListSerializer
+    permission_classes = [IsAuthenticated, IsPatient]
     
 
 class PublicAvailableTimesForDoctorView(generics.ListAPIView):
@@ -94,11 +97,13 @@ class PublicAvailableTimesForDoctorView(generics.ListAPIView):
         doctor_id = self.request.query_params.get('doctor')
         date = self.request.query_params.get('date')
 
-        queryset = AvailableTime.objects.filter(is_active=True)
-        if doctor_id:
-            queryset = queryset.filter(doctor_id=doctor_id)
-        if date:
-            queryset = queryset.filter(date__day=date)
+        if not doctor_id:
+            raise serializers.ValidationError({'doctor': 'پارامتر doctor الزامی است.'})
 
-        return queryset
+        queryset = AvailableTime.objects.filter(is_active=True, doctor_id=doctor_id)
+
+        if date:
+            queryset = queryset.filter(date=date)
+
+        return queryset.order_by('date', 'start_time')
     
