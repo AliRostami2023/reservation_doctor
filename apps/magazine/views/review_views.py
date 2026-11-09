@@ -1,0 +1,63 @@
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, permissions, serializers
+from ..serializers import (CommentListSerializer, CommentCreateSerializer, ReplyCreateSerializer,
+    CommentUpdateSerializer, ReplyUpdateSerializer)
+from ..models import Magazine, Review
+from ..paginations import ReviewPaginations
+
+
+class CommentBlogListAPIView(generics.ListAPIView):
+    serializer_class = CommentListSerializer
+    pagination_class = ReviewPaginations
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            magazine__slug=self.kwargs['magazine_slug'],
+            reply=None
+        ).select_related('author', 'magazine', 'reply')
+
+
+class CommentBlogCreateAPIView(generics.CreateAPIView):
+    serializer_class = CommentCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        blog = get_object_or_404(Magazine, slug=self.kwargs['magazine_slug'])
+        serializer.save(author=self.request.user, magazine=blog)
+
+
+class BlogReplyCreateAPIView(generics.CreateAPIView):
+    serializer_class = ReplyCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        blog = get_object_or_404(Magazine, slug=self.kwargs['magazine_slug'])
+        parent_comment = get_object_or_404(Review, pk=self.kwargs['comment_id'], magazine=blog)
+
+        if parent_comment.reply is not None:
+            raise serializers.ValidationError("ریپلای روی ریپلای مجاز نیست.")
+
+        serializer.save(author=self.request.user, magazine=blog, reply=parent_comment)
+
+
+class CommentBlogUpdateDeleteAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
+    serializer_class = CommentUpdateSerializer
+    permission_classes = [permissions.IsAdminUser]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            magazine__slug=self.kwargs['magazine_slug'],
+            reply=None
+        )
+
+
+class BlogReplyUpdateDeleteAPIView(generics.UpdateAPIView, generics.DestroyAPIView):
+    serializer_class = ReplyUpdateSerializer
+    permission_classes = [permissions.IsAdminUser]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            magazine__slug=self.kwargs['magazine_slug']
+        ).exclude(reply=None)

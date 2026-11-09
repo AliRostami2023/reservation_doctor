@@ -1,4 +1,5 @@
-FROM python:3.13.3-alpine
+
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -6,16 +7,14 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -U pip
-RUN pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir --default-timeout=120 --retries=10 \
+    -i https://mirror-pypi.runflare.com/simple \
+    -r requirements.txt
 
 COPY . .
 
 EXPOSE 8000
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-CMD []
