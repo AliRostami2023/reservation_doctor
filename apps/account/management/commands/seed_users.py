@@ -2,7 +2,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from account.models import User, Patient
+from apps.account.models import User, Patient
 
 
 class Command(BaseCommand):

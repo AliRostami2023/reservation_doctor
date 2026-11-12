@@ -6,7 +6,7 @@ from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from account.models import User, Doctor, DentalSpecialty
+from apps.account.models import User, Doctor, DentalSpecialty
 
 
 DOCTORS = [

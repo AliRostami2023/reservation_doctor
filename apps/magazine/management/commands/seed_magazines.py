@@ -6,8 +6,8 @@ from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from account.models import User
-from magazine.models import CategoryMagazine, Magazine
+from apps.account.models import User
+from apps.magazine.models import CategoryMagazine, Magazine
 
 
 ARTICLES = [
