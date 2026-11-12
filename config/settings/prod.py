@@ -2,7 +2,11 @@ from .base import *
 
 DEBUG = False
 SECRET_KEY = config("SECRET_KEY")
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="localhost,127.0.0.1",
+    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
+)
 
 # PostgreSQL is configured with individual variables (compatible with Neon).
 if config("DB_ENGINE", default="postgresql") in {"postgres", "postgresql"}:
