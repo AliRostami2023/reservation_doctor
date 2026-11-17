@@ -2,6 +2,7 @@ from .base import *
 
 DEBUG = False
 SECRET_KEY = config("SECRET_KEY")
+
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
     default="localhost,127.0.0.1",
@@ -21,15 +22,21 @@ if config("DB_ENGINE", default="postgresql") in {"postgres", "postgresql"}:
 
 redis_url = config("REDIS_URL", default="")
 if redis_url:
-    CACHES = {"default": {"BACKEND": "django_redis.cache.RedisCache", "LOCATION": redis_url,
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"}}}
+    CACHES = {
+                "default": {
+                            "BACKEND": "django_redis.cache.RedisCache", 
+                            "LOCATION": redis_url,
+                "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"}}}
+    
     CELERY_BROKER_URL = (config("CELERY_BROKER_URL", default="") or redis_url)
     CELERY_RESULT_BACKEND = (config("CELERY_RESULT_BACKEND", default="") or redis_url)
+
 
 arvan_access = config("ARVAN_ACCESS_KEY", default="")
 arvan_secret = config("ARVAN_SECRET_KEY", default="")
 arvan_bucket = config("ARVAN_BUCKET_NAME", default="")
 arvan_endpoint = config("ARVAN_ENDPOINT", default="")
+
 if all((arvan_access, arvan_secret, arvan_bucket, arvan_endpoint)):
     AWS_ACCESS_KEY_ID = arvan_access
     AWS_SECRET_ACCESS_KEY = arvan_secret
@@ -43,6 +50,7 @@ if all((arvan_access, arvan_secret, arvan_bucket, arvan_endpoint)):
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
     MEDIA_URL = f"https://{arvan_bucket}.{arvan_endpoint.removeprefix('https://').rstrip('/')}/"
+
 
 CORS_ALLOW_ALL_ORIGINS = False
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
