@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.account", 
     "apps.appointment",
-    "apps.order.", 
+    "apps.order", 
     "apps.magazine",
     "apps.headerfooterapi", 
     "apps.core",
